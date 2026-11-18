@@ -1,0 +1,30 @@
+{
+  "envelope": {
+    "payload": "eyJwcm90b2NvbCI6MSwiaW5zdGFsbElkIjoiaW5zdGFsbF9maXh0dXJlXzAwMDEiLCJzZXEiOjEsImZsaWdodElkIjoiZmxfMDAxMTIyMzM0NDU1NjY3Nzg4OTlhYWJiIiwiZXhwaXJlZFBvbGljeSI6InJvdGF0ZSIsImNyZWF0ZWRBdCI6MTgwMDAwMDEwMDAwMCwiYWNjb3VudEhhc2giOiI1NWI0N2UxYmQ3NzIxYjVmNzc5ZWQwNjcyMTkwMzgwMGQ1ZTk3OTdkMmVmMjg1ZDNlODNiZTBjZTNjYTE2N2VkIiwicm93cyI6W3siZGF5IjoiMjAyNy0wMS0xNSIsInBsYWNlbWVudElkIjoicGxfaW50ZXJzdGl0aWFsIiwiY3JlYXRpdmVJZCI6ImNyX2hlbGxvIiwidmFyaWFudEtleSI6ImVzLmlvcyIsImZhbGxiYWNrUmVhc29uIjoib2ZmbGluZSIsImltcHJlc3Npb25zIjoyLCJ2aWV3TXMiOjMwMDAwLCJjbG9zZXMiOjEsImN0YUF0dGVtcHRzIjoxLCJjb21wbGV0aW9ucyI6MX1dfQ==",
+    "sig": "1IOu4goiYCs/EyQUBbOvy87IsSkcuFAf8aW/sJPE0xs=",
+    "keyId": "install_fixture_0001"
+  },
+  "batch": {
+    "protocol": 1,
+    "installId": "install_fixture_0001",
+    "seq": 1,
+    "flightId": "fl_00112233445566778899aabb",
+    "expiredPolicy": "rotate",
+    "createdAt": 1800000100000,
+    "accountHash": "55b47e1bd7721b5f779ed06721903800d5e9797d2ef285d3e83be0ce3ca167ed",
+    "rows": [
+      {
+        "day": "2027-01-15",
+        "placementId": "pl_interstitial",
+        "creativeId": "cr_hello",
+        "variantKey": "es.ios",
+        "fallbackReason": "offline",
+        "impressions": 2,
+        "viewMs": 30000,
+        "closes": 1,
+        "ctaAttempts": 1,
+        "completions": 1
+      }
+    ]
+  }
+}

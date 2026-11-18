@@ -1,0 +1,29 @@
+{
+  "name": "ad.flightmode.sdk",
+  "version": "0.1.0",
+  "displayName": "Flightmode",
+  "description": "Offline ad fallback: plays signed HTML creatives without connection and uploads signed metrics on reconnect.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clasen/flightmode-unity.git"
+  },
+  "unity": "2021.3",
+  "keywords": [
+    "ads",
+    "offline",
+    "interstitial",
+    "banner",
+    "mediation"
+  ],
+  "samples": [
+    {
+      "displayName": "Mediation fallback",
+      "description": "Show Flightmode when the mediation network cannot fill because the device is offline.",
+      "path": "Samples~/MediationFallback"
+    }
+  ],
+  "dependencies": {
+    "com.unity.ugui": "1.0.0"
+  }
+}

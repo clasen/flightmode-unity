@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Builds Runtime/Core outside the Unity package so bin/ and obj/ never land in imported folders. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>FlightmodeSdk</RootNamespace>
+    <AssemblyName>Flightmode.Core</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Runtime/Core/**/*.cs" />
+    <InternalsVisibleTo Include="Flightmode.Tests" />
+  </ItemGroup>
+</Project>

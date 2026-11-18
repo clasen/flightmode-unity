@@ -1,0 +1,98 @@
+{
+  "envelope": {
+    "payload": "eyJwcm90b2NvbCI6MSwiZmxpZ2h0SWQiOiJmbF8wMDExMjIzMzQ0NTU2Njc3ODg5OWFhYmIiLCJpbnN0YWxsSWQiOiJpbnN0YWxsX2ZpeHR1cmVfMDAwMSIsImFwcElkIjoiYXBwX2RlbW8iLCJwbGF0Zm9ybSI6ImlvcyIsImxvY2FsZSI6ImVzLUFSIiwiaXNzdWVkQXQiOjE4MDAwMDAwMDAwMDAsImV4cGlyZXNBdCI6MTgwMDYwNDgwMDAwMCwiZXhwaXJlZFBvbGljeSI6InJvdGF0ZSIsInBsYWNlbWVudHMiOlt7InBsYWNlbWVudElkIjoicGxfaW50ZXJzdGl0aWFsIiwiZm9ybWF0IjoiaW50ZXJzdGl0aWFsIiwibWF4RHVyYXRpb25NcyI6MTgwMDAsImNsb3NlQWZ0ZXJNcyI6NjAwMCwicm90YXRpb25NcyI6MTUwMDAsImNhcFBlclNlc3Npb24iOjQsImNhcFBlckRheSI6MTIsImNvb2xkb3duTXMiOjI0MDAwMCwiY3JlYXRpdmVzIjpbeyJjcmVhdGl2ZUlkIjoiY3JfaGVsbG8iLCJ3ZWlnaHQiOjF9XX0seyJwbGFjZW1lbnRJZCI6InBsX2Jhbm5lciIsImZvcm1hdCI6ImJhbm5lciIsIm1heER1cmF0aW9uTXMiOjE4MDAwLCJjbG9zZUFmdGVyTXMiOjAsInJvdGF0aW9uTXMiOjE1MDAwLCJjYXBQZXJTZXNzaW9uIjoxMDAsImNhcFBlckRheSI6MzAwLCJjb29sZG93bk1zIjowLCJjcmVhdGl2ZXMiOlt7ImNyZWF0aXZlSWQiOiJjcl9oZWxsbyIsIndlaWdodCI6MX1dfV0sImNyZWF0aXZlcyI6W3siY3JlYXRpdmVJZCI6ImNyX2hlbGxvIiwicmV2aXNpb24iOjEsInZhcmlhbnRLZXkiOiJlcy5pb3MiLCJsb2NhbGUiOiJlcyIsInBsYXRmb3JtIjoiaW9zIiwiZW50cnkiOiJpbmRleC5odG1sIiwiZHVyYXRpb25NcyI6MTgwMDAsInByb2dyZXNzU3RlcHMiOjMsInN0cmluZ3MiOnsic2NlbmUxIjoiU2luIHJlZCwgaWd1YWwganVnYW5kby4iLCJzY2VuZTIiOiJBbnVuY2lvcyBxdWUgdmlhamFuIGNvbiB2b3MuIiwic2NlbmUzIjoiUmVzZXJ2w6EgZXN0ZSBlc3BhY2lvIHBvciB1biBtZXMuIiwiY3RhIjoiQmFqw6EgbGEgYXBwIiwiY2hhdCI6IkVzY3JpYmlub3MifSwibGlua3MiOnsic3RvcmUiOiJodHRwczovL2FwcHMuYXBwbGUuY29tL2FwcC9pZDAwMDAwMDAwMCIsIndoYXRzYXBwIjoiaHR0cHM6Ly93YS5tZS8xMDAwMDAwMDAwMCJ9LCJmaWxlcyI6W3sicGF0aCI6ImFwcC5qcyIsInNoYTI1NiI6IjY5NjE3Yjg1MjYwOWQyY2QzZjEyZDFhM2E1ODdiOTdmMmFiZWE3OGEzNTFiNWRiNGMyOTcyMWRhNjYzZmNmMTYiLCJzaXplIjo1NjF9LHsicGF0aCI6Imhlcm8uc3ZnIiwic2hhMjU2IjoiODFlZGM2NTQ5ZGRhMGNlZDgxNDBkYWQ1MjkzYzRkZDQ3YWM0Y2UzYTNlN2EyMTJjYjBjMmJlMDA2ZmJkYjBhOSIsInNpemUiOjE5Mn0seyJwYXRoIjoiaW5kZXguaHRtbCIsInNoYTI1NiI6ImYxMzNiZWJmYmY4YjllZGRjZmUwNmYxYmUzMDMyMWU0ZGJiMTgyMjY2ODEyMGJlZmE0OTJlOGNlMjcxNWVlNDMiLCJzaXplIjo2MDl9LHsicGF0aCI6InN0eWxlLmNzcyIsInNoYTI1NiI6ImE5YmQxNWI0OGE3MjJiZTVkZjJmOTZjZDBmMzdkZTg0MzNmMzI2MzQxMzg0YTZkNGY5Yjk0NjM4MmM3ZjY5OTMiLCJzaXplIjoxNzA3fV0sInBvc3RlcnMiOnt9fV19",
+    "sig": "eHutqE4KQzOoS5x1dbI5ARb+znGyqjCbt2KbINYILtYYYvbv+yddC7iFGtZmVyTZusR/yBTFWD/7/ktdvUfVoZAQ0EtEzMOyRtH5LHqKm2mkluMGRKJzS9tTXT6vUxeMnvc7XMuDjeCEFQjZ6GLh5/upNEjEW04xp12o/QDkS4/xn8yoDDDiUalvcobqaMHEPwKOyOGvl5O+QqWoGHOOpUpxmVd60tBp9DhRxvlrLf1SIeQB9gbv1mcWwWnbL5CO7tUfcdye3LB00tfRJbpbb3RR1ax8AfyQRdQoX7IleiuNe3Y7heaMaxPgGa7ExIp8N2UbB8KBKPS5NDy9ltBvXw==",
+    "keyId": "fixture-1"
+  },
+  "flight": {
+    "protocol": 1,
+    "flightId": "fl_00112233445566778899aabb",
+    "installId": "install_fixture_0001",
+    "appId": "app_demo",
+    "platform": "ios",
+    "locale": "es-AR",
+    "issuedAt": 1800000000000,
+    "expiresAt": 1800604800000,
+    "expiredPolicy": "rotate",
+    "placements": [
+      {
+        "placementId": "pl_interstitial",
+        "format": "interstitial",
+        "maxDurationMs": 18000,
+        "closeAfterMs": 6000,
+        "rotationMs": 15000,
+        "capPerSession": 4,
+        "capPerDay": 12,
+        "cooldownMs": 240000,
+        "creatives": [
+          {
+            "creativeId": "cr_hello",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "placementId": "pl_banner",
+        "format": "banner",
+        "maxDurationMs": 18000,
+        "closeAfterMs": 0,
+        "rotationMs": 15000,
+        "capPerSession": 100,
+        "capPerDay": 300,
+        "cooldownMs": 0,
+        "creatives": [
+          {
+            "creativeId": "cr_hello",
+            "weight": 1
+          }
+        ]
+      }
+    ],
+    "creatives": [
+      {
+        "creativeId": "cr_hello",
+        "revision": 1,
+        "variantKey": "es.ios",
+        "locale": "es",
+        "platform": "ios",
+        "entry": "index.html",
+        "durationMs": 18000,
+        "progressSteps": 3,
+        "strings": {
+          "scene1": "Sin red, igual jugando.",
+          "scene2": "Anuncios que viajan con vos.",
+          "scene3": "Reservá este espacio por un mes.",
+          "cta": "Bajá la app",
+          "chat": "Escribinos"
+        },
+        "links": {
+          "store": "https://apps.apple.com/app/id000000000",
+          "whatsapp": "https://wa.me/10000000000"
+        },
+        "files": [
+          {
+            "path": "app.js",
+            "sha256": "69617b852609d2cd3f12d1a3a587b97f2abea78a351b5db4c29721da663fcf16",
+            "size": 561
+          },
+          {
+            "path": "hero.svg",
+            "sha256": "81edc6549dda0ced8140dad5293c4dd47ac4ce3a3e7a212cb0c2be006fbdb0a9",
+            "size": 192
+          },
+          {
+            "path": "index.html",
+            "sha256": "f133bebfbf8b9eddcfe06f1be30321e4dbb1822668120befa492e8ce2715ee43",
+            "size": 609
+          },
+          {
+            "path": "style.css",
+            "sha256": "a9bd15b48a722be5df2f96cd0f37de8433f326341384a6d4f9b946382c7f6993",
+            "size": 1707
+          }
+        ],
+        "posters": {}
+      }
+    ]
+  }
+}
