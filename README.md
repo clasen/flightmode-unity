@@ -15,7 +15,7 @@ signed metrics on the next reconnect.
 Package Manager: **Add package from git URL...**
 
 ```
-https://github.com/clasen/flightmode-unity.git#v0.1.1
+https://github.com/clasen/flightmode-unity.git
 ```
 
 ### Sample
