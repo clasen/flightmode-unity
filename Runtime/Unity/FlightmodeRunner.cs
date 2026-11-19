@@ -174,7 +174,7 @@ namespace FlightmodeSdk
         bool OpenLink(AdSession session, string linkId)
         {
             if (!session.Variant.Links.TryGetValue(linkId, out var url)) return false;
-            if (Online) Application.OpenURL(url);
+            Application.OpenURL(url);
             return true;
         }
 

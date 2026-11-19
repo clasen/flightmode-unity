@@ -181,7 +181,7 @@ another app, `400` for an invalid body.
 - `viewMs` counts only time on screen after the creative called `ready()`, with
   the app in the foreground.
 - `ctaAttempts` counts taps on a known link id, online or not. The SDK opens the
-  URL only when the device is online.
+  URL either way: an app that takes the link, such as WhatsApp, works offline.
 - `accountHash` is `sha256(appKey + ":" + accountId)`, sent only when the app
   passed an account id with the user's consent. The server salts it again and
   feeds it into a HyperLogLog per creative and day to count unique accounts.
