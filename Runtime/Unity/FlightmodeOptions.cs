@@ -1,12 +1,13 @@
 namespace FlightmodeSdk
 {
-    // Values from the publisher's get_sdk_config.
+    // AppKey comes from the publisher's get_sdk_config.
     public sealed class FlightmodeOptions
     {
         public string AppKey;
-        public string Endpoint;
+        // Set both only for a self-hosted server, from its get_sdk_config.
+        public string Endpoint = FlightmodePolicy.Endpoint;
         // The flightKeys JSON array, embedded in the app so flights verify offline.
-        public string FlightKeysJson;
+        public string FlightKeysJson = FlightmodePolicy.FlightKeysJson;
         // Only with the user's consent: counts unique accounts through a salted hash.
         public string AccountId;
         // Overrides the device locale, for testing translations.

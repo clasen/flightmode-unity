@@ -8,8 +8,6 @@ public sealed class MediationFallback : MonoBehaviour
 {
     [Header("From get_sdk_config")]
     [SerializeField] string appKey;
-    [SerializeField] string endpoint;
-    [SerializeField, TextArea(3, 8)] string flightKeysJson;
     [SerializeField] string interstitialPlacementId;
     [SerializeField] string bannerPlacementId;
 
@@ -21,7 +19,7 @@ public sealed class MediationFallback : MonoBehaviour
 
     void Start()
     {
-        Flightmode.Initialize(new FlightmodeOptions { AppKey = appKey, Endpoint = endpoint, FlightKeysJson = flightKeysJson });
+        Flightmode.Initialize(new FlightmodeOptions { AppKey = appKey });
     }
 
     // Call at the natural break where the game shows an interstitial.

@@ -39,6 +39,8 @@ namespace FlightmodeSdk
 
         internal void Setup(FlightmodeOptions options)
         {
+            if (options.Endpoint != FlightmodePolicy.Endpoint && options.FlightKeysJson == FlightmodePolicy.FlightKeysJson)
+                throw new ArgumentException("a custom Endpoint needs the FlightKeysJson of that server");
             var settings = new EngineSettings
             {
                 AppKey = options.AppKey,

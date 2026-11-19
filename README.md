@@ -25,13 +25,13 @@ Manager: select **Flightmode**, open **Samples**, and click **Import**.
 
 ## Setup
 
-Get these values from your publisher's `get_sdk_config`:
+Get your app key from your publisher's `get_sdk_config`:
 
 | Option | Description |
 | --- | --- |
 | `AppKey` | Your app key. |
-| `Endpoint` | Base URL of the Flightmode server. |
-| `FlightKeysJson` | The `flightKeys` JSON array. Embedded in the app so flights verify offline. |
+| `Endpoint` | Optional. Base URL of the Flightmode server. Defaults to `https://flightmodeads.com`. |
+| `FlightKeysJson` | Optional. The `flightKeys` JSON array that verifies flights offline. Defaults to the keys of `https://flightmodeads.com`. |
 | `AccountId` | Optional. Only with the user's consent: counts unique accounts through a salted hash. |
 | `Locale` | Optional. Overrides the device locale, for testing translations. |
 
@@ -43,10 +43,11 @@ using FlightmodeSdk;
 Flightmode.Initialize(new FlightmodeOptions
 {
     AppKey = "your-app-key",
-    Endpoint = "https://your-endpoint",
-    FlightKeysJson = flightKeysJson,
 });
 ```
+
+A self-hosted server needs both `Endpoint` and `FlightKeysJson`, from its own
+`get_sdk_config`.
 
 The SDK creates a persistent GameObject, syncs whenever the device is online,
 and keeps the latest flight on disk for offline play.
