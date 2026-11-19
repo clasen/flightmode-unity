@@ -68,7 +68,7 @@ namespace FlightmodeSdk
 
     public sealed class Engine
     {
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         const long DayMs = 86_400_000;
 
         readonly EngineSettings _settings;
