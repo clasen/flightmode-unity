@@ -125,6 +125,7 @@ static NSString* FMContentType(NSString* path) {
 @property (nonatomic, strong) CADisplayLink* displayLink;
 @property (nonatomic) BOOL started;
 @property (nonatomic) BOOL paused;
+@property (nonatomic) BOOL completed;
 @property (nonatomic) BOOL finished;
 @property (nonatomic) CFTimeInterval accumulated;
 @property (nonatomic) CFTimeInterval resumedAt;
@@ -246,7 +247,7 @@ static WKContentRuleList* FMRuleList;
 }
 
 - (CFTimeInterval)elapsedMs {
-    CFTimeInterval running = self.started && !self.paused ? CACurrentMediaTime() - self.resumedAt : 0;
+    CFTimeInterval running = self.started && !self.paused && !self.completed ? CACurrentMediaTime() - self.resumedAt : 0;
     return (self.accumulated + running) * 1000.0;
 }
 
@@ -263,23 +264,38 @@ static WKContentRuleList* FMRuleList;
 - (void)tick {
     if (self.paused || self.finished) return;
     CFTimeInterval elapsed = [self elapsedMs];
-    double progress = MIN(1.0, elapsed / self.durationMs) * self.fills.count;
+    if (elapsed >= self.closeAfterMs) self.closeButton.hidden = NO;
+    if (elapsed >= self.durationMs) [self complete];
+    else [self setProgress:elapsed / self.durationMs];
+}
+
+- (void)setProgress:(double)share {
+    double progress = MIN(1.0, share) * self.fills.count;
     for (NSUInteger i = 0; i < self.fills.count; i++) {
         UIView* fill = self.fills[i];
         CGRect bounds = fill.superview.bounds;
         fill.frame = CGRectMake(0, 0, bounds.size.width * MAX(0.0, MIN(1.0, progress - i)), bounds.size.height);
     }
-    if (elapsed >= self.closeAfterMs) self.closeButton.hidden = NO;
-    if (elapsed >= self.durationMs) [self finishClosedByUser:NO completed:YES];
 }
 
+// The creative reached its end: the clock stops and the ad stays up until the user closes it.
+- (void)complete {
+    self.accumulated = [self elapsedMs] / 1000.0;
+    self.completed = YES;
+    [self.displayLink invalidate];
+    self.displayLink = nil;
+    [self setProgress:1.0];
+    self.closeButton.hidden = NO;
+}
+
+// A close after the creative played to its end is a completion, not a skip.
 - (void)closeTapped {
-    [self finishClosedByUser:YES completed:NO];
+    [self finishClosedByUser:!self.completed completed:self.completed];
 }
 
 - (void)setPaused:(BOOL)paused {
     if (!self.started || self.finished || paused == _paused) return;
-    if (paused) self.accumulated += CACurrentMediaTime() - self.resumedAt;
+    if (paused) self.accumulated = [self elapsedMs] / 1000.0;
     else self.resumedAt = CACurrentMediaTime();
     _paused = paused;
     [self emit:@"onPause" argument:paused ? @"true" : @"false"];
@@ -309,7 +325,7 @@ static WKContentRuleList* FMRuleList;
     [self.webView stopLoading];
     [self.container removeFromSuperview];
     if (FMAds[self.slot] == self) [FMAds removeObjectForKey:self.slot];
-    [self send:@{ @"t": @"closed", @"viewMs": @(viewMs), @"closedByUser": @(closedByUser), @"completed": @(completed) }];
+    [self send:@{ @"t": @"closed", @"viewMs": @(viewMs), @"closedByUser": @(closedByUser), @"completed": @(completed || self.completed) }];
 }
 
 - (void)userContentController:(WKUserContentController*)controller didReceiveScriptMessage:(WKScriptMessage*)message {
@@ -321,7 +337,7 @@ static WKContentRuleList* FMRuleList;
     } else if ([type isEqualToString:@"open"]) {
         if (self.started && [body[@"id"] isKindOfClass:NSString.class]) [self send:@{ @"t": @"open", @"id": body[@"id"] }];
     } else if ([type isEqualToString:@"done"]) {
-        if (self.started && self.durationMs > 0) [self finishClosedByUser:NO completed:YES];
+        if (self.started && self.durationMs > 0 && !self.completed) [self complete];
     }
 }
 

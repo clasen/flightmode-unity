@@ -27,6 +27,7 @@ namespace FlightmodeSdk
         GameObject _close;
         float _viewSeconds;
         bool _paused;
+        bool _completed;
 
         public PosterSurface(Transform parent)
         {
@@ -47,6 +48,7 @@ namespace FlightmodeSdk
             _onOpen = onOpen;
             _onClosed = onClosed;
             _viewSeconds = 0f;
+            _completed = false;
             _fills.Clear();
 
             var canvas = Overlay.Canvas(_parent, "FlightmodePoster", SortingOrder);
@@ -88,7 +90,7 @@ namespace FlightmodeSdk
                 var fill = Overlay.Fill(track.transform, "Fill", Color.white, Vector2.zero, new Vector2(0f, 1f));
                 _fills.Add(fill.rectTransform);
             }
-            var close = Overlay.CloseButton(safe, CloseSize, () => Close(true, false));
+            var close = Overlay.CloseButton(safe, CloseSize, () => Close(!_completed, _completed));
             close.anchoredPosition = new Vector2(-Margin, -Margin * 2 - BarHeight);
             _close = close.gameObject;
             _close.SetActive(false);
@@ -120,14 +122,14 @@ namespace FlightmodeSdk
 
         public void Tick(float deltaSeconds)
         {
-            if (!IsShowing || _paused) return;
+            if (!IsShowing || _paused || _completed) return;
             _viewSeconds += deltaSeconds;
             if (!_layout.Fullscreen) return;
             var elapsedMs = _viewSeconds * 1000f;
             var progress = Mathf.Clamp01(elapsedMs / _session.DurationMs) * _fills.Count;
             for (var i = 0; i < _fills.Count; i++) _fills[i].anchorMax = new Vector2(Mathf.Clamp01(progress - i), 1f);
             if (elapsedMs >= _session.DurationMs * FlightmodePolicy.CloseAfterShare) _close.SetActive(true);
-            if (elapsedMs >= _session.DurationMs) Close(false, true);
+            if (elapsedMs >= _session.DurationMs) _completed = true;
         }
 
         void Close(bool closedByUser, bool completed)
@@ -139,7 +141,7 @@ namespace FlightmodeSdk
             _onClosed = null;
             _onOpen = null;
             _session = null;
-            callback(new SurfaceResult { ViewMs = viewMs, ClosedByUser = closedByUser, Completed = completed });
+            callback(new SurfaceResult { ViewMs = viewMs, ClosedByUser = closedByUser, Completed = completed || _completed });
         }
 
         public void Hide()

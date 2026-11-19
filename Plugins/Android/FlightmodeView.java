@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -26,6 +27,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import com.unity3d.player.UnityPlayer;
 
@@ -136,7 +139,9 @@ public final class FlightmodeView {
         CloseView close;
         boolean started;
         boolean paused;
+        boolean completed;
         boolean finished;
+        Object backCallback;
         long accumulatedMs;
         long resumedAt;
 
@@ -199,11 +204,12 @@ public final class FlightmodeView {
                 FrameLayout.LayoutParams button = new FrameLayout.LayoutParams(dp(activity, CLOSE_DP), dp(activity, CLOSE_DP), Gravity.TOP | Gravity.END);
                 button.setMargins(0, margin * 2 + dp(activity, BAR_DP), margin, 0);
                 close.setVisibility(closeAfterMs > 0 ? View.GONE : View.VISIBLE);
-                close.setOnClickListener(view -> finish(true, false));
+                close.setOnClickListener(view -> closeByUser());
                 container.addView(close, button);
             }
 
             host.addView(container, params);
+            if (interstitial()) captureBack();
             webView.loadUrl(ORIGIN + entryPath);
             MAIN.postDelayed(() -> {
                 if (!started) finish(false, false);
@@ -224,8 +230,42 @@ public final class FlightmodeView {
             view.setPadding(left, top, right, bottom);
         }
 
+        // Back belongs to the interstitial while it is up: it closes once the close button shows and
+        // does nothing before, so it never reaches the game underneath. The WebView holds the focus,
+        // and API 33+ delivers back through the dispatcher when the app opts into predictive back.
+        void captureBack() {
+            webView.setOnKeyListener((view, keyCode, event) -> {
+                if (keyCode != KeyEvent.KEYCODE_BACK) return false;
+                if (event.getAction() == KeyEvent.ACTION_UP) onBack();
+                return true;
+            });
+            webView.requestFocus();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                OnBackInvokedCallback callback = this::onBack;
+                activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
+                backCallback = callback;
+            }
+        }
+
+        void onBack() {
+            if (close.getVisibility() == View.VISIBLE) closeByUser();
+        }
+
+        // A close after the creative played to its end is a completion, not a skip.
+        void closeByUser() {
+            finish(!completed, completed);
+        }
+
+        // The creative reached its end: the clock stops and the ad stays up until the user closes it.
+        void complete() {
+            accumulatedMs = elapsedMs();
+            completed = true;
+            progress.setProgress(1f);
+            close.setVisibility(View.VISIBLE);
+        }
+
         long elapsedMs() {
-            long running = started && !paused ? SystemClock.uptimeMillis() - resumedAt : 0;
+            long running = started && !paused && !completed ? SystemClock.uptimeMillis() - resumedAt : 0;
             return accumulatedMs + running;
         }
 
@@ -244,7 +284,7 @@ public final class FlightmodeView {
                 progress.setProgress(Math.min(1f, (float) elapsed / durationMs));
                 if (elapsed >= closeAfterMs) close.setVisibility(View.VISIBLE);
                 if (elapsed >= durationMs) {
-                    finish(false, true);
+                    complete();
                     return;
                 }
             }
@@ -253,7 +293,7 @@ public final class FlightmodeView {
 
         void setPaused(boolean value) {
             if (!started || finished || value == paused) return;
-            if (value) accumulatedMs += SystemClock.uptimeMillis() - resumedAt;
+            if (value) accumulatedMs = elapsedMs();
             else resumedAt = SystemClock.uptimeMillis();
             paused = value;
             emit("onPause", value ? "true" : "false");
@@ -276,6 +316,9 @@ public final class FlightmodeView {
             if (finished) return;
             long viewMs = elapsedMs();
             finished = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backCallback != null) {
+                activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
+            }
             if (container != null) {
                 ((ViewGroup) container.getParent()).removeView(container);
                 webView.removeJavascriptInterface("__fmNative");
@@ -283,7 +326,7 @@ public final class FlightmodeView {
             }
             if (ADS.get(slot) == this) ADS.remove(slot);
             try {
-                send(new JSONObject().put("t", "closed").put("viewMs", viewMs).put("closedByUser", closedByUser).put("completed", completed));
+                send(new JSONObject().put("t", "closed").put("viewMs", viewMs).put("closedByUser", closedByUser).put("completed", completed || this.completed));
             } catch (JSONException error) {
                 throw new IllegalStateException(error);
             }
@@ -299,7 +342,7 @@ public final class FlightmodeView {
                 } else if (type.equals("open")) {
                     if (started) send(new JSONObject().put("t", "open").put("id", message.getString("id")));
                 } else if (type.equals("done")) {
-                    if (started && interstitial()) finish(false, true);
+                    if (started && interstitial() && !completed) complete();
                 }
             } catch (JSONException ignored) {
                 // Malformed messages from the creative are dropped.
