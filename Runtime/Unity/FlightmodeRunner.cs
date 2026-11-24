@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -20,8 +19,14 @@ namespace FlightmodeSdk
         ICreativeSurface _interstitial;
         ICreativeSurface _banner;
         ConnectPrompt _prompt;
-        // The URL each surface opens once the device is online, tapped offline on a link that needs the internet.
-        readonly Dictionary<ICreativeSurface, string> _waitingLinks = new Dictionary<ICreativeSurface, string>();
+        // Links tapped offline that need the internet; each opens once the device is online. The
+        // interstitial's waits while it shows. The banner's waits BannerConnectSeconds even after the
+        // banner closes, since the game hides it as soon as its mediation is back with the network,
+        // which can be before the platform reports the network as validated.
+        string _interstitialLink;
+        string _bannerLink;
+        float _bannerLinkSeconds;
+        bool _bannerShowsConnect;
         AudienceTracker _audience;
         string _endpointHost;
         float _sincePoll;
@@ -32,7 +37,6 @@ namespace FlightmodeSdk
         BannerRequest _bannerWanted;
         AdSession _bannerSession;
         float _bannerSeconds;
-        float _bannerWaitSeconds;
 
         sealed class BannerRequest
         {
@@ -146,14 +150,15 @@ namespace FlightmodeSdk
             (_interstitial as PosterSurface)?.Tick(delta);
             (_banner as PosterSurface)?.Tick(delta);
 
-            if (_bannerSession != null && !_paused)
+            if (_bannerLink != null && !_paused)
             {
-                if (_waitingLinks.ContainsKey(_banner)) WaitOnBanner(delta);
-                else
-                {
-                    _bannerSeconds += delta;
-                    if (_bannerSeconds * 1000f >= _bannerSession.Placement.RotationMs) _banner.Hide();
-                }
+                _bannerLinkSeconds += delta;
+                if (_bannerLinkSeconds >= FlightmodePolicy.BannerConnectSeconds) DropBannerLink();
+            }
+            if (_bannerSession != null && !_paused && !_bannerShowsConnect)
+            {
+                _bannerSeconds += delta;
+                if (_bannerSeconds * 1000f >= _bannerSession.Placement.RotationMs) _banner.Hide();
             }
 
             _sincePoll += delta;
@@ -189,40 +194,39 @@ namespace FlightmodeSdk
                 OpenUrl(surface, url);
                 return;
             }
-            _waitingLinks[surface] = url;
-            if (surface == _banner) _bannerWaitSeconds = 0f;
+            if (surface == _banner)
+            {
+                _bannerLink = url;
+                _bannerLinkSeconds = 0f;
+                _bannerShowsConnect = true;
+            }
+            else _interstitialLink = url;
             surface.SetConnect(session.Variant.Strings[CreativeVariant.ConnectString]);
-        }
-
-        // A banner holds its connect layer, and its rotation, only for a while; then it plays on as before.
-        void WaitOnBanner(float delta)
-        {
-            _bannerWaitSeconds += delta;
-            if (_bannerWaitSeconds < FlightmodePolicy.BannerConnectSeconds) return;
-            _waitingLinks.Remove(_banner);
-            _banner.SetConnect(null);
         }
 
         void OpenWaitingLinks()
         {
-            if (_waitingLinks.Count == 0) return;
-            var waiting = new List<KeyValuePair<ICreativeSurface, string>>(_waitingLinks);
-            _waitingLinks.Clear();
-            foreach (var link in waiting)
+            if (_interstitialLink != null)
             {
-                link.Key.SetConnect(null);
-                OpenUrl(link.Key, link.Value);
+                var url = _interstitialLink;
+                _interstitialLink = null;
+                _interstitial.SetConnect(null);
+                OpenUrl(_interstitial, url);
+            }
+            if (_bannerLink != null)
+            {
+                var url = _bannerLink;
+                DropBannerLink();
+                OpenUrl(_banner, url);
             }
         }
 
-        // The player never closes a banner: the game hides it, often because its mediation came back
-        // with the network. A link the player tapped on it still opens if the device is online by then.
-        void OpenWaitingLinkOfClosedBanner()
+        // The banner plays on as before: its layer goes and its rotation resumes.
+        void DropBannerLink()
         {
-            if (!_waitingLinks.TryGetValue(_banner, out var url)) return;
-            _waitingLinks.Remove(_banner);
-            if (PollConnectivity()) Sync();
-            if (Online) Application.OpenURL(url);
+            if (_bannerShowsConnect) _banner.SetConnect(null);
+            _bannerShowsConnect = false;
+            _bannerLink = null;
         }
 
         // The interstitial closes behind the opened link, so the player does not come back to it.
@@ -249,7 +253,7 @@ namespace FlightmodeSdk
                 linkId => OpenLink(session, _interstitial, linkId, () => attempts++),
                 result =>
                 {
-                    _waitingLinks.Remove(_interstitial);
+                    _interstitialLink = null;
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     onClosed?.Invoke();
                 });
@@ -292,7 +296,7 @@ namespace FlightmodeSdk
                 linkId => OpenLink(session, _banner, linkId, () => attempts++),
                 result =>
                 {
-                    OpenWaitingLinkOfClosedBanner();
+                    _bannerShowsConnect = false;
                     _bannerSession = null;
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     StartBanner();
