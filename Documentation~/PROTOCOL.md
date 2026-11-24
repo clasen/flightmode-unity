@@ -69,11 +69,13 @@ re-serializes before verifying.
   highest accepted `seq` is acknowledged again without being counted twice, so
   retries are safe.
 - `rejected` lists batches dropped for good: bad signature, schema error, unknown
-  placement or creative, a day outside the accepted window
+  placement, a day outside the accepted window
   (`ingest.maxRowAgeDays` back, one day ahead), completions or closes above
   impressions, or totals above the plausibility caps per install and day
   (`ingest.maxImpressionsPerInstallDay`, `ingest.maxViewMsPerInstallDay`). The
   SDK deletes acknowledged and rejected batches alike.
+- Rows of a creative that no longer exists, deleted after the device received
+  its flight, are dropped and the rest of the batch is acknowledged.
 - `flight` comes back when the device has none, holds a different flight id for
   its (app, platform, locale), or its flight expires within
   `flights.refreshBeforeMs`.
