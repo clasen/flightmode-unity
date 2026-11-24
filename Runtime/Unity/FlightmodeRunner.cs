@@ -19,10 +19,8 @@ namespace FlightmodeSdk
         ICreativeSurface _interstitial;
         ICreativeSurface _banner;
         ConnectPrompt _prompt;
-        // Links tapped offline that need the internet; each opens once the device is online. The
-        // interstitial's waits while it shows. The banner's waits BannerConnectSeconds even after the
-        // banner closes, since the game hides it as soon as its mediation is back with the network,
-        // which can be before the platform reports the network as validated.
+        // Links tapped offline that need the internet; each opens once the device is online, and only
+        // while its ad still shows. The banner's waits at most BannerConnectSeconds.
         string _interstitialLink;
         string _bannerLink;
         float _bannerLinkSeconds;
@@ -278,7 +276,7 @@ namespace FlightmodeSdk
         }
 
         // A hide from the game takes the banner away at once, as when the player leaves the screen it
-        // sits on. A link it was waiting for keeps waiting and opens once the device is online.
+        // sits on, and with it the link it was waiting for.
         internal void HideBanner()
         {
             _bannerWanted = null;
@@ -309,6 +307,7 @@ namespace FlightmodeSdk
                 linkId => OpenLink(session, _banner, linkId, () => attempts++),
                 result =>
                 {
+                    _bannerLink = null;
                     _bannerShowsConnect = false;
                     _bannerHideDeferred = false;
                     _bannerSession = null;

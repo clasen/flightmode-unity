@@ -149,9 +149,9 @@ another app, `400` for an invalid body.
   dark layer showing `strings.connect` and opens the link once the device is
   online. Closing the interstitial drops the wait. A banner waits for up to
   `BannerConnectSeconds` (`FlightmodePolicy`, 90 s) and then plays on. If the
-  game hides the banner meanwhile, it goes at once and the link keeps waiting.
-  If the game replaces it with another banner, the SDK keeps it until the link
-  opens or the wait ends. The SDK rejects a variant with `onlineLinks` and no `connect` string.
+  game hides the banner meanwhile, it goes at once and its link is dropped: a
+  link opens only while its ad shows. If the game replaces it with another
+  banner, the SDK keeps it until the link opens or the wait ends. The SDK rejects a variant with `onlineLinks` and no `connect` string.
 - `posters` are frames rendered by the server for each format slot. The SDK
   shows them where no WebView is available, such as the Unity editor.
 
