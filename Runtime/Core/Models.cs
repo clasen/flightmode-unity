@@ -41,8 +41,12 @@ namespace FlightmodeSdk
         public int ProgressSteps;
         public Dictionary<string, string> Strings;
         public Dictionary<string, string> Links;
+        // Links that wait for the internet; offline, the host shows Strings["connect"] until it returns.
+        public HashSet<string> OnlineLinks;
         public List<FileRef> Files;
         public Dictionary<string, string> Posters;
+
+        public const string ConnectString = "connect";
 
         public string DirectoryName => CreativeId + "-" + Revision + "-" + VariantKey;
     }
@@ -144,9 +148,19 @@ namespace FlightmodeSdk
                     ProgressSteps = (int)Read.Long(item, "progressSteps"),
                     Strings = Read.StringMap(item, "strings"),
                     Links = Read.StringMap(item, "links"),
+                    OnlineLinks = new HashSet<string>(),
                     Posters = Read.StringMap(item, "posters"),
                     Files = new List<FileRef>()
                 };
+                if (item.Has("onlineLinks"))
+                {
+                    foreach (var id in Read.Arr(item, "onlineLinks"))
+                    {
+                        if (id.Type != JsonNode.Kind.String || !variant.Links.ContainsKey(id.StringValue)) throw new FormatException("onlineLinks names an unknown link");
+                        variant.OnlineLinks.Add(id.StringValue);
+                    }
+                    if (!variant.Strings.TryGetValue(CreativeVariant.ConnectString, out var connect) || string.IsNullOrWhiteSpace(connect)) throw new FormatException("onlineLinks requires strings." + CreativeVariant.ConnectString);
+                }
                 foreach (var file in Read.Arr(item, "files"))
                 {
                     var path = Read.Str(file, "path");

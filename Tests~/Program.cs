@@ -161,6 +161,10 @@ namespace FlightmodeSdk.Tests
             Assert(flight.Creatives[0].VariantKey == "es.ios", "variant key");
             Assert(flight.Creatives[0].Links["store"].StartsWith("https://apps.apple.com"), "platform link");
             Assert(flight.Placement("pl_interstitial").MaxDurationMs == 18000, "placement");
+            Assert(flight.Creatives[0].OnlineLinks.SetEquals(new[] { "whatsapp" }), "online links");
+            var withoutConnect = Json.Parse(Encoding.UTF8.GetString(payload));
+            withoutConnect["creatives"].ArrayValue[0]["strings"].ObjectValue.Remove("connect");
+            Assert(Throws<FormatException>(() => Flight.Parse(withoutConnect)), "online links without the connect string must fail");
 
             var tampered = Json.Parse(Json.Stringify(envelope));
             var bytes = Convert.FromBase64String(tampered["payload"].StringValue);

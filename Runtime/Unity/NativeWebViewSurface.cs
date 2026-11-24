@@ -17,6 +17,7 @@ namespace FlightmodeSdk
         [DllImport("__Internal")] static extern void FMShow(string slot, string root, string entryPath, string entryHtml, int durationMs, int closeAfterMs, int progressSteps, int readyTimeoutMs, [MarshalAs(UnmanagedType.I1)] bool bannerTop, int bannerWidthDp, int bannerHeightDp, string callbackObject);
         [DllImport("__Internal")] static extern void FMHide(string slot);
         [DllImport("__Internal")] static extern void FMSetPaused([MarshalAs(UnmanagedType.I1)] bool paused);
+        [DllImport("__Internal")] static extern void FMSetConnect(string slot, string message, float alpha);
         [DllImport("__Internal")] static extern string FMLocale();
         public static string DeviceLocale() => FMLocale();
 #elif UNITY_ANDROID && !UNITY_EDITOR
@@ -29,12 +30,14 @@ namespace FlightmodeSdk
         }
         static void FMHide(string slot) => View.CallStatic("hide", slot);
         static void FMSetPaused(bool paused) => View.CallStatic("setPaused", paused);
+        static void FMSetConnect(string slot, string message, float alpha) => View.CallStatic("setConnect", slot, message, alpha);
         public static string DeviceLocale() => View.CallStatic<string>("locale");
 #else
         const string Post = "function(m){}";
         static void FMShow(string slot, string root, string entryPath, string entryHtml, int durationMs, int closeAfterMs, int progressSteps, int readyTimeoutMs, bool bannerTop, int bannerWidthDp, int bannerHeightDp, string callbackObject) => throw new PlatformNotSupportedException();
         static void FMHide(string slot) => throw new PlatformNotSupportedException();
         static void FMSetPaused(bool paused) => throw new PlatformNotSupportedException();
+        static void FMSetConnect(string slot, string message, float alpha) => throw new PlatformNotSupportedException();
         public static string DeviceLocale() => throw new PlatformNotSupportedException();
 #endif
 
@@ -81,6 +84,12 @@ namespace FlightmodeSdk
         }
 
         public void SetPaused(bool paused) => FMSetPaused(paused);
+
+        public void SetConnect(string message)
+        {
+            // Natives take an empty message as removal: AndroidJavaClass cannot pass a null String.
+            if (IsShowing) FMSetConnect(_slot, message ?? "", FlightmodePolicy.ConnectLayerAlpha);
+        }
 
         // Events from native code: {"t":"open","id":...} or {"t":"closed","viewMs":...,"closedByUser":...,"completed":...}.
         internal void OnNativeEvent(JsonNode node)

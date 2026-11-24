@@ -18,6 +18,8 @@ namespace FlightmodeSdk
 
         readonly Transform _parent;
         GameObject _canvas;
+        RectTransform _frame;
+        GameObject _connect;
         Texture2D _texture;
         AdSession _session;
         SurfaceLayout _layout;
@@ -68,6 +70,7 @@ namespace FlightmodeSdk
                 frame.pivot = new Vector2(0.5f, y);
                 frame.sizeDelta = new Vector2(layout.WidthDp, layout.HeightDp);
             }
+            _frame = frame;
             var poster = Overlay.Rect(frame, "Poster", Vector2.zero, Vector2.one).gameObject.AddComponent<RawImage>();
             poster.texture = _texture;
             var fitter = poster.gameObject.AddComponent<AspectRatioFitter>();
@@ -141,6 +144,8 @@ namespace FlightmodeSdk
             _onClosed = null;
             _onOpen = null;
             _session = null;
+            _frame = null;
+            _connect = null;
             callback(new SurfaceResult { ViewMs = viewMs, ClosedByUser = closedByUser, Completed = completed || _completed });
         }
 
@@ -152,6 +157,27 @@ namespace FlightmodeSdk
         public void SetPaused(bool paused)
         {
             _paused = paused;
+        }
+
+        public void SetConnect(string message)
+        {
+            if (!IsShowing) return;
+            if (_connect != null) UnityEngine.Object.Destroy(_connect);
+            _connect = null;
+            if (message == null) return;
+            var layer = Overlay.Fill(_frame, "Connect", new Color(0f, 0f, 0f, FlightmodePolicy.ConnectLayerAlpha), Vector2.zero, Vector2.one);
+            _connect = layer.gameObject;
+            var text = Overlay.Rect(layer.transform, "Message", Vector2.zero, Vector2.one).gameObject.AddComponent<Text>();
+            text.rectTransform.offsetMin = new Vector2(Margin, 0f);
+            text.rectTransform.offsetMax = new Vector2(-Margin, 0f);
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 8;
+            text.resizeTextMaxSize = 20;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            text.text = message;
         }
     }
 }

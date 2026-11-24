@@ -119,8 +119,9 @@ another app, `400` for an invalid body.
       "entry": "index.html",
       "durationMs": 18000,
       "progressSteps": 3,
-      "strings": { "headline": "…" },
-      "links": { "store": "https://…" },
+      "strings": { "headline": "…", "connect": "…" },
+      "links": { "store": "https://…", "whatsapp": "https://wa.me/…" },
+      "onlineLinks": ["whatsapp"],
       "files": [{ "path": "index.html", "sha256": "…", "size": 1234 }],
       "posters": { "interstitial:9:16": "<sha256>", "banner:320x50": "<sha256>" }
     }
@@ -143,6 +144,11 @@ another app, `400` for an invalid body.
 - `files` holds only the resolved variant: overrides already applied, override
   sources and `manifest.json` left out. File paths are relative, never absolute,
   and never contain `..`.
+- `onlineLinks`, present only when not empty, names the links the manifest
+  marks `"online": true`. Tapped offline, the SDK covers the creative with a
+  dark layer showing `strings.connect` and opens the link once the device is
+  online, unless the ad closes first. The SDK rejects a variant with
+  `onlineLinks` and no `connect` string.
 - `posters` are frames rendered by the server for each format slot. The SDK
   shows them where no WebView is available, such as the Unity editor.
 
@@ -182,8 +188,9 @@ another app, `400` for an invalid body.
   without asking the mediation).
 - `viewMs` counts only time on screen after the creative called `ready()`, with
   the app in the foreground.
-- `ctaAttempts` counts taps on a known link id, online or not. The SDK opens the
-  URL either way: an app that takes the link, such as WhatsApp, works offline.
+- `ctaAttempts` counts taps on a known link id, online or not. Offline, the SDK
+  opens the URL at once, since an app that takes the link can work offline,
+  except for a link in `onlineLinks`, which waits for the internet.
 - `accountHash` is `sha256(appKey + ":" + accountId)`, sent only when the app
   passed an account id with the user's consent. The server salts it again and
   feeds it into a HyperLogLog per creative and day to count unique accounts.

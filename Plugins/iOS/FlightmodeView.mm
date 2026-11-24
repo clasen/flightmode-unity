@@ -1,6 +1,6 @@
 // Plays Flightmode HTML creatives in a WKWebView above the Unity view.
 // The package is served from disk on flightmode://creative/ and every other load is blocked.
-// The native layer owns the progress bar, the close button and the play time.
+// The native layer owns the progress bar, the close button, the play time and the connect layer.
 
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
@@ -20,6 +20,8 @@ static const CGFloat FMMargin = 12;
 static const CGFloat FMBarHeight = 4;
 static const CGFloat FMCloseSize = 32;
 static const CGFloat FMStepGap = 4;
+static const CGFloat FMConnectFontSize = 20;
+static const CGFloat FMConnectMinScale = 0.4;
 
 static NSString* FMContentType(NSString* path) {
     static NSDictionary<NSString*, NSString*>* types;
@@ -122,6 +124,7 @@ static NSString* FMContentType(NSString* path) {
 @property (nonatomic, strong) FMSchemeHandler* scheme;
 @property (nonatomic, strong) NSMutableArray<UIView*>* fills;
 @property (nonatomic, strong) FMCloseButton* closeButton;
+@property (nonatomic, strong) UIView* connectLayer;
 @property (nonatomic, strong) CADisplayLink* displayLink;
 @property (nonatomic) BOOL started;
 @property (nonatomic) BOOL paused;
@@ -244,6 +247,40 @@ static WKContentRuleList* FMRuleList;
         [self.closeButton.widthAnchor constraintEqualToConstant:FMCloseSize],
         [self.closeButton.heightAnchor constraintEqualToConstant:FMCloseSize]
     ]];
+}
+
+// Covers the creative, below the progress bar and the close button, with a message asking for the internet.
+- (void)setConnect:(NSString*)message alpha:(CGFloat)alpha {
+    [self.connectLayer removeFromSuperview];
+    self.connectLayer = nil;
+    if (!message || !self.webView || self.finished) return;
+    UIView* layer = [UIView new];
+    layer.translatesAutoresizingMaskIntoConstraints = NO;
+    layer.backgroundColor = [UIColor colorWithWhite:0 alpha:alpha];
+    UILabel* label = [UILabel new];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    label.text = message;
+    label.textColor = UIColor.whiteColor;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.font = [UIFont systemFontOfSize:FMConnectFontSize weight:UIFontWeightSemibold];
+    label.numberOfLines = 2;
+    label.lineBreakMode = NSLineBreakByTruncatingTail;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = FMConnectMinScale;
+    [layer addSubview:label];
+    [self.container insertSubview:layer aboveSubview:self.webView];
+    [NSLayoutConstraint activateConstraints:@[
+        [layer.topAnchor constraintEqualToAnchor:self.webView.topAnchor],
+        [layer.bottomAnchor constraintEqualToAnchor:self.webView.bottomAnchor],
+        [layer.leadingAnchor constraintEqualToAnchor:self.webView.leadingAnchor],
+        [layer.trailingAnchor constraintEqualToAnchor:self.webView.trailingAnchor],
+        [label.topAnchor constraintGreaterThanOrEqualToAnchor:layer.topAnchor],
+        [label.bottomAnchor constraintLessThanOrEqualToAnchor:layer.bottomAnchor],
+        [label.centerYAnchor constraintEqualToAnchor:layer.centerYAnchor],
+        [label.leadingAnchor constraintEqualToAnchor:layer.leadingAnchor constant:FMMargin],
+        [label.trailingAnchor constraintEqualToAnchor:layer.trailingAnchor constant:-FMMargin]
+    ]];
+    self.connectLayer = layer;
 }
 
 - (CFTimeInterval)elapsedMs {
@@ -413,6 +450,11 @@ void FMShow(const char* slot, const char* root, const char* entryPath, const cha
 
 void FMHide(const char* slot) {
     [FMAds[FMString(slot)] finishClosedByUser:NO completed:NO];
+}
+
+void FMSetConnect(const char* slot, const char* message, float alpha) {
+    NSString* text = FMString(message);
+    [FMAds[FMString(slot)] setConnect:text.length > 0 ? text : nil alpha:alpha];
 }
 
 void FMSetPaused(bool paused) {

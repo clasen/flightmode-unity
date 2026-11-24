@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -15,6 +16,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -27,6 +29,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
@@ -48,7 +51,7 @@ import java.util.Map;
 // Plays Flightmode HTML creatives in an android.webkit.WebView above the Unity view.
 // The package is served from disk on https://creative.flightmode.local/ and every other request
 // is answered locally with 403, so nothing reaches the network. The native layer owns the
-// progress bar, the close button and the play time.
+// progress bar, the close button, the play time and the connect layer.
 public final class FlightmodeView {
     static final String HOST = "creative.flightmode.local";
     static final String ORIGIN = "https://" + HOST + "/";
@@ -57,6 +60,8 @@ public final class FlightmodeView {
     static final int BAR_DP = 4;
     static final int CLOSE_DP = 32;
     static final int GAP_DP = 4;
+    static final int CONNECT_SP = 20;
+    static final int CONNECT_MIN_SP = 8;
     static final Map<String, String> TYPES = new HashMap<>();
     static final Map<String, Ad> ADS = new HashMap<>();
     static final Handler MAIN = new Handler(Looper.getMainLooper());
@@ -90,6 +95,14 @@ public final class FlightmodeView {
         MAIN.post(() -> {
             Ad ad = ADS.get(slot);
             if (ad != null) ad.finish(false, false);
+        });
+    }
+
+    // Covers the creative of the slot with a message asking for the internet, or removes it when message is empty.
+    public static void setConnect(final String slot, final String message, final float alpha) {
+        MAIN.post(() -> {
+            Ad ad = ADS.get(slot);
+            if (ad != null) ad.setConnect(message, alpha);
         });
     }
 
@@ -137,6 +150,7 @@ public final class FlightmodeView {
         WebView webView;
         ProgressView progress;
         CloseView close;
+        FrameLayout connect;
         boolean started;
         boolean paused;
         boolean completed;
@@ -289,6 +303,30 @@ public final class FlightmodeView {
                 }
             }
             container.postOnAnimation(this::tick);
+        }
+
+        // Sits right above the WebView, so the progress bar and the close button stay on top. It takes the taps.
+        void setConnect(String message, float alpha) {
+            if (connect != null) container.removeView(connect);
+            connect = null;
+            if (message.isEmpty() || container == null || finished) return;
+            connect = new FrameLayout(activity);
+            connect.setClickable(true);
+            connect.setBackgroundColor(Color.argb(Math.round(alpha * 255), 0, 0, 0));
+            TextView text = new TextView(activity);
+            text.setText(message);
+            text.setTextColor(Color.WHITE);
+            text.setGravity(Gravity.CENTER);
+            text.setTypeface(Typeface.DEFAULT_BOLD);
+            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, CONNECT_SP);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                text.setAutoSizeTextTypeUniformWithConfiguration(CONNECT_MIN_SP, CONNECT_SP, 1, TypedValue.COMPLEX_UNIT_SP);
+            }
+            int margin = dp(activity, MARGIN_DP);
+            text.setPadding(margin, 0, margin, 0);
+            connect.addView(text, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            container.addView(connect, container.indexOfChild(webView) + 1,
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
         void setPaused(boolean value) {

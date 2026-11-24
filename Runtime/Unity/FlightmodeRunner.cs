@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -19,6 +20,8 @@ namespace FlightmodeSdk
         ICreativeSurface _interstitial;
         ICreativeSurface _banner;
         ConnectPrompt _prompt;
+        // The URL each surface opens once the device is online, tapped offline on a link that needs the internet.
+        readonly Dictionary<ICreativeSurface, string> _waitingLinks = new Dictionary<ICreativeSurface, string>();
         AudienceTracker _audience;
         string _endpointHost;
         float _sincePoll;
@@ -142,7 +145,7 @@ namespace FlightmodeSdk
             (_interstitial as PosterSurface)?.Tick(delta);
             (_banner as PosterSurface)?.Tick(delta);
 
-            if (_bannerSession != null && !_paused)
+            if (_bannerSession != null && !_paused && !_waitingLinks.ContainsKey(_banner))
             {
                 _bannerSeconds += delta;
                 if (_bannerSeconds * 1000f >= _bannerSession.Placement.RotationMs) _banner.Hide();
@@ -152,6 +155,7 @@ namespace FlightmodeSdk
             if (_sincePoll >= FlightmodePolicy.ConnectivityPollSeconds && PollConnectivity()) Sync();
             _sinceSync += delta;
             if (!Online) return;
+            OpenWaitingLinks();
             var interval = _prompt != null ? FlightmodePolicy.PromptRetrySeconds
                 : Engine.State == FlightState.Fresh ? FlightmodePolicy.SyncIntervalSeconds : FlightmodePolicy.StaleRetrySeconds;
             if (_sinceSync >= interval) Sync();
@@ -171,11 +175,28 @@ namespace FlightmodeSdk
             Engine.Save();
         }
 
-        bool OpenLink(AdSession session, string linkId)
+        bool OpenLink(AdSession session, ICreativeSurface surface, string linkId)
         {
             if (!session.Variant.Links.TryGetValue(linkId, out var url)) return false;
-            Application.OpenURL(url);
+            if (Online || !session.Variant.OnlineLinks.Contains(linkId))
+            {
+                Application.OpenURL(url);
+                return true;
+            }
+            _waitingLinks[surface] = url;
+            surface.SetConnect(session.Variant.Strings[CreativeVariant.ConnectString]);
             return true;
+        }
+
+        void OpenWaitingLinks()
+        {
+            if (_waitingLinks.Count == 0) return;
+            foreach (var waiting in _waitingLinks)
+            {
+                waiting.Key.SetConnect(null);
+                Application.OpenURL(waiting.Value);
+            }
+            _waitingLinks.Clear();
         }
 
         internal bool InterstitialShowing => _interstitial.IsShowing;
@@ -192,9 +213,10 @@ namespace FlightmodeSdk
             if (session == null) return false;
             var attempts = 0;
             _interstitial.Show(session, InterstitialSlot, new SurfaceLayout { Fullscreen = true },
-                linkId => { if (OpenLink(session, linkId)) attempts++; },
+                linkId => { if (OpenLink(session, _interstitial, linkId)) attempts++; },
                 result =>
                 {
+                    _waitingLinks.Remove(_interstitial);
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     onClosed?.Invoke();
                 });
@@ -234,9 +256,10 @@ namespace FlightmodeSdk
             var attempts = 0;
             var layout = new SurfaceLayout { Position = request.Position, WidthDp = FlightmodePolicy.BannerWidthDp, HeightDp = FlightmodePolicy.BannerHeightDp };
             _banner.Show(session, BannerSlot, layout,
-                linkId => { if (OpenLink(session, linkId)) attempts++; },
+                linkId => { if (OpenLink(session, _banner, linkId)) attempts++; },
                 result =>
                 {
+                    _waitingLinks.Remove(_banner);
                     _bannerSession = null;
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     StartBanner();

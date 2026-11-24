@@ -20,5 +20,7 @@ namespace FlightmodeSdk
         public const int BannerHeightDp = 50;
         // The interstitial close button appears once this share of the creative's duration has played.
         public const float CloseAfterShare = 0.85f;
+        // Opacity of the dark layer that asks for the internet over a creative whose link needs it.
+        public const float ConnectLayerAlpha = 0.85f;
     }
 }
