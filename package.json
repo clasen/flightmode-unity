@@ -1,6 +1,6 @@
 {
   "name": "ad.flightmode.sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "displayName": "Flightmode",
   "description": "Offline ad fallback: plays signed HTML creatives without connection and uploads signed metrics on reconnect.",
   "license": "MIT",
