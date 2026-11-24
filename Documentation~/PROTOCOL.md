@@ -147,8 +147,10 @@ another app, `400` for an invalid body.
 - `onlineLinks`, present only when not empty, names the links the manifest
   marks `"online": true`. Tapped offline, the SDK covers the creative with a
   dark layer showing `strings.connect` and opens the link once the device is
-  online, unless the ad closes first. The SDK rejects a variant with
-  `onlineLinks` and no `connect` string.
+  online. Closing the interstitial drops the wait. A banner waits for up to
+  `BannerConnectSeconds` (`FlightmodePolicy`, 90 s) and then plays on; one the
+  game hides still opens the link when the device is already online. The SDK
+  rejects a variant with `onlineLinks` and no `connect` string.
 - `posters` are frames rendered by the server for each format slot. The SDK
   shows them where no WebView is available, such as the Unity editor.
 

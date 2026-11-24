@@ -32,6 +32,7 @@ namespace FlightmodeSdk
         BannerRequest _bannerWanted;
         AdSession _bannerSession;
         float _bannerSeconds;
+        float _bannerWaitSeconds;
 
         sealed class BannerRequest
         {
@@ -145,10 +146,14 @@ namespace FlightmodeSdk
             (_interstitial as PosterSurface)?.Tick(delta);
             (_banner as PosterSurface)?.Tick(delta);
 
-            if (_bannerSession != null && !_paused && !_waitingLinks.ContainsKey(_banner))
+            if (_bannerSession != null && !_paused)
             {
-                _bannerSeconds += delta;
-                if (_bannerSeconds * 1000f >= _bannerSession.Placement.RotationMs) _banner.Hide();
+                if (_waitingLinks.ContainsKey(_banner)) WaitOnBanner(delta);
+                else
+                {
+                    _bannerSeconds += delta;
+                    if (_bannerSeconds * 1000f >= _bannerSession.Placement.RotationMs) _banner.Hide();
+                }
             }
 
             _sincePoll += delta;
@@ -175,28 +180,56 @@ namespace FlightmodeSdk
             Engine.Save();
         }
 
-        bool OpenLink(AdSession session, ICreativeSurface surface, string linkId)
+        void OpenLink(AdSession session, ICreativeSurface surface, string linkId, Action attempted)
         {
-            if (!session.Variant.Links.TryGetValue(linkId, out var url)) return false;
+            if (!session.Variant.Links.TryGetValue(linkId, out var url)) return;
+            attempted();
             if (Online || !session.Variant.OnlineLinks.Contains(linkId))
             {
-                Application.OpenURL(url);
-                return true;
+                OpenUrl(surface, url);
+                return;
             }
             _waitingLinks[surface] = url;
+            if (surface == _banner) _bannerWaitSeconds = 0f;
             surface.SetConnect(session.Variant.Strings[CreativeVariant.ConnectString]);
-            return true;
+        }
+
+        // A banner holds its connect layer, and its rotation, only for a while; then it plays on as before.
+        void WaitOnBanner(float delta)
+        {
+            _bannerWaitSeconds += delta;
+            if (_bannerWaitSeconds < FlightmodePolicy.BannerConnectSeconds) return;
+            _waitingLinks.Remove(_banner);
+            _banner.SetConnect(null);
         }
 
         void OpenWaitingLinks()
         {
             if (_waitingLinks.Count == 0) return;
-            foreach (var waiting in _waitingLinks)
-            {
-                waiting.Key.SetConnect(null);
-                Application.OpenURL(waiting.Value);
-            }
+            var waiting = new List<KeyValuePair<ICreativeSurface, string>>(_waitingLinks);
             _waitingLinks.Clear();
+            foreach (var link in waiting)
+            {
+                link.Key.SetConnect(null);
+                OpenUrl(link.Key, link.Value);
+            }
+        }
+
+        // The player never closes a banner: the game hides it, often because its mediation came back
+        // with the network. A link the player tapped on it still opens if the device is online by then.
+        void OpenWaitingLinkOfClosedBanner()
+        {
+            if (!_waitingLinks.TryGetValue(_banner, out var url)) return;
+            _waitingLinks.Remove(_banner);
+            if (PollConnectivity()) Sync();
+            if (Online) Application.OpenURL(url);
+        }
+
+        // The interstitial closes behind the opened link, so the player does not come back to it.
+        void OpenUrl(ICreativeSurface surface, string url)
+        {
+            Application.OpenURL(url);
+            if (surface == _interstitial) _interstitial.Hide();
         }
 
         internal bool InterstitialShowing => _interstitial.IsShowing;
@@ -213,7 +246,7 @@ namespace FlightmodeSdk
             if (session == null) return false;
             var attempts = 0;
             _interstitial.Show(session, InterstitialSlot, new SurfaceLayout { Fullscreen = true },
-                linkId => { if (OpenLink(session, _interstitial, linkId)) attempts++; },
+                linkId => OpenLink(session, _interstitial, linkId, () => attempts++),
                 result =>
                 {
                     _waitingLinks.Remove(_interstitial);
@@ -256,10 +289,10 @@ namespace FlightmodeSdk
             var attempts = 0;
             var layout = new SurfaceLayout { Position = request.Position, WidthDp = FlightmodePolicy.BannerWidthDp, HeightDp = FlightmodePolicy.BannerHeightDp };
             _banner.Show(session, BannerSlot, layout,
-                linkId => { if (OpenLink(session, _banner, linkId)) attempts++; },
+                linkId => OpenLink(session, _banner, linkId, () => attempts++),
                 result =>
                 {
-                    _waitingLinks.Remove(_banner);
+                    OpenWaitingLinkOfClosedBanner();
                     _bannerSession = null;
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     StartBanner();

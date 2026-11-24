@@ -22,5 +22,7 @@ namespace FlightmodeSdk
         public const float CloseAfterShare = 0.85f;
         // Opacity of the dark layer that asks for the internet over a creative whose link needs it.
         public const float ConnectLayerAlpha = 0.85f;
+        // How long a banner shows that layer without internet before it drops the link and plays on.
+        public const float BannerConnectSeconds = 90f;
     }
 }
