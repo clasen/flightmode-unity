@@ -27,8 +27,8 @@ namespace FlightmodeSdk
         string _bannerLink;
         float _bannerLinkSeconds;
         bool _bannerShowsConnect;
-        // The game asked to hide or replace the banner while it showed the connect layer. The banner
-        // stays until its link opens or the wait ends, so the player sees what they tapped open.
+        // The game asked to replace the banner while it showed the connect layer. The banner stays
+        // until its link opens or the wait ends, so the player sees what they tapped open.
         bool _bannerHideDeferred;
         AudienceTracker _audience;
         string _endpointHost;
@@ -277,10 +277,12 @@ namespace FlightmodeSdk
             return true;
         }
 
+        // A hide from the game takes the banner away at once, as when the player leaves the screen it
+        // sits on. A link it was waiting for keeps waiting and opens once the device is online.
         internal void HideBanner()
         {
             _bannerWanted = null;
-            HideBannerSurface();
+            _banner.Hide();
         }
 
         void HideBannerSurface()
