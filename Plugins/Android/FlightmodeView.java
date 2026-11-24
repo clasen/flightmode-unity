@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
@@ -22,6 +23,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -174,22 +176,33 @@ public final class FlightmodeView {
             return durationMs > 0;
         }
 
+        // The ad gets a window of its own above the game's, hardware accelerated whatever the game's
+        // activity declares: Unity turns acceleration off, and a WebView drawn in software paints its
+        // animated layers at the wrong scale. The banner's window leaves the focus and the taps around
+        // it to the game.
         @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
         void present(int steps, int readyTimeoutMs, boolean bannerTop, int bannerWidthDp, int bannerHeightDp) {
-            ViewGroup host = activity.findViewById(android.R.id.content);
             container = new FrameLayout(activity);
             container.setClickable(true);
-            FrameLayout.LayoutParams params;
+            container.setSystemUiVisibility(activity.getWindow().getDecorView().getSystemUiVisibility());
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(WindowManager.LayoutParams.TYPE_APPLICATION,
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            }
             if (interstitial()) {
                 container.setBackgroundColor(Color.BLACK);
-                params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.height = ViewGroup.LayoutParams.MATCH_PARENT;
                 container.setOnApplyWindowInsetsListener((view, insets) -> {
                     applySafeArea(view, insets);
                     return insets;
                 });
             } else {
-                params = new FrameLayout.LayoutParams(dp(activity, bannerWidthDp), dp(activity, bannerHeightDp),
-                    Gravity.CENTER_HORIZONTAL | (bannerTop ? Gravity.TOP : Gravity.BOTTOM));
+                params.width = dp(activity, bannerWidthDp);
+                params.height = dp(activity, bannerHeightDp);
+                params.gravity = Gravity.CENTER_HORIZONTAL | (bannerTop ? Gravity.TOP : Gravity.BOTTOM);
+                params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
             }
 
             webView = new WebView(activity);
@@ -222,7 +235,7 @@ public final class FlightmodeView {
                 container.addView(close, button);
             }
 
-            host.addView(container, params);
+            activity.getWindowManager().addView(container, params);
             if (interstitial()) captureBack();
             webView.loadUrl(ORIGIN + entryPath);
             MAIN.postDelayed(() -> {
@@ -256,7 +269,7 @@ public final class FlightmodeView {
             webView.requestFocus();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 OnBackInvokedCallback callback = this::onBack;
-                activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
+                container.findOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
                 backCallback = callback;
             }
         }
@@ -354,11 +367,13 @@ public final class FlightmodeView {
             if (finished) return;
             long viewMs = elapsedMs();
             finished = true;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backCallback != null) {
-                activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
+            // The window is gone already when the activity was destroyed with the ad on screen.
+            boolean attached = container != null && container.isAttachedToWindow();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backCallback != null && attached) {
+                container.findOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
             }
             if (container != null) {
-                ((ViewGroup) container.getParent()).removeView(container);
+                if (attached) activity.getWindowManager().removeViewImmediate(container);
                 webView.removeJavascriptInterface("__fmNative");
                 webView.destroy();
             }
