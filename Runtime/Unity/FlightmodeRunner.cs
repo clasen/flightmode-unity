@@ -27,6 +27,9 @@ namespace FlightmodeSdk
         string _bannerLink;
         float _bannerLinkSeconds;
         bool _bannerShowsConnect;
+        // The game asked to hide or replace the banner while it showed the connect layer. The banner
+        // stays until its link opens or the wait ends, so the player sees what they tapped open.
+        bool _bannerHideDeferred;
         AudienceTracker _audience;
         string _endpointHost;
         float _sincePoll;
@@ -215,9 +218,8 @@ namespace FlightmodeSdk
             }
             if (_bannerLink != null)
             {
-                var url = _bannerLink;
+                OpenUrl(_banner, _bannerLink);
                 DropBannerLink();
-                OpenUrl(_banner, url);
             }
         }
 
@@ -227,6 +229,9 @@ namespace FlightmodeSdk
             if (_bannerShowsConnect) _banner.SetConnect(null);
             _bannerShowsConnect = false;
             _bannerLink = null;
+            if (!_bannerHideDeferred) return;
+            _bannerHideDeferred = false;
+            _banner.Hide();
         }
 
         // The interstitial closes behind the opened link, so the player does not come back to it.
@@ -267,7 +272,7 @@ namespace FlightmodeSdk
             var reason = Reason(direct);
             if (reason == null || !Engine.IsReady(placementId)) return false;
             _bannerWanted = new BannerRequest { PlacementId = placementId, Position = position, Reason = reason.Value };
-            if (_banner.IsShowing) _banner.Hide();
+            if (_banner.IsShowing) HideBannerSurface();
             else StartBanner();
             return true;
         }
@@ -275,7 +280,13 @@ namespace FlightmodeSdk
         internal void HideBanner()
         {
             _bannerWanted = null;
-            _banner.Hide();
+            HideBannerSurface();
+        }
+
+        void HideBannerSurface()
+        {
+            if (_bannerShowsConnect) _bannerHideDeferred = true;
+            else _banner.Hide();
         }
 
         // Plays the next banner creative; when it closes (rotation, Hide or a new Show) the next one starts.
@@ -297,6 +308,7 @@ namespace FlightmodeSdk
                 result =>
                 {
                     _bannerShowsConnect = false;
+                    _bannerHideDeferred = false;
                     _bannerSession = null;
                     session.Finish(result.ViewMs, result.ClosedByUser, result.Completed, attempts);
                     StartBanner();
