@@ -19,8 +19,8 @@ namespace FlightmodeSdk
         ICreativeSurface _interstitial;
         ICreativeSurface _banner;
         ConnectPrompt _prompt;
-        // Links tapped offline that need the internet; each opens once the device is online, and only
-        // while its ad still shows. The banner's waits at most BannerConnectSeconds.
+        // Links tapped offline that need the internet; each opens once the device is online. One whose
+        // ad the player left behind is dropped. The banner's waits at most BannerConnectSeconds.
         string _interstitialLink;
         string _bannerLink;
         float _bannerLinkSeconds;
@@ -28,6 +28,8 @@ namespace FlightmodeSdk
         // The game asked to replace the banner while it showed the connect layer. The banner stays
         // until its link opens or the wait ends, so the player sees what they tapped open.
         bool _bannerHideDeferred;
+        // The game hid the banner because the network is coming back, so its link still opens.
+        bool _bannerLinkOutlivesBanner;
         AudienceTracker _audience;
         string _endpointHost;
         float _sincePoll;
@@ -275,11 +277,15 @@ namespace FlightmodeSdk
             return true;
         }
 
-        // A hide from the game takes the banner away at once, as when the player leaves the screen it
-        // sits on, and with it the link it was waiting for.
+        // A hide from the game takes the banner away at once. While the player is still offline they
+        // left the screen it sat on, and its waiting link goes with it. Once they are no longer the
+        // offline audience the game hides it to bring its mediation back, which can be before the
+        // platform reports the network as validated, and the link opens as soon as it does.
         internal void HideBanner()
         {
             _bannerWanted = null;
+            if (!_banner.IsShowing) return;
+            _bannerLinkOutlivesBanner = _bannerLink != null && Audience != Audience.Offline;
             _banner.Hide();
         }
 
@@ -307,7 +313,8 @@ namespace FlightmodeSdk
                 linkId => OpenLink(session, _banner, linkId, () => attempts++),
                 result =>
                 {
-                    _bannerLink = null;
+                    if (!_bannerLinkOutlivesBanner) _bannerLink = null;
+                    _bannerLinkOutlivesBanner = false;
                     _bannerShowsConnect = false;
                     _bannerHideDeferred = false;
                     _bannerSession = null;
