@@ -2,6 +2,7 @@ package ad.flightmode;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -13,6 +14,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -22,6 +24,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -158,6 +161,8 @@ public final class FlightmodeView {
         boolean completed;
         boolean finished;
         Object backCallback;
+        FocusLender focusLender;
+        ViewTreeObserver.OnWindowFocusChangeListener focusReturn;
         long accumulatedMs;
         long resumedAt;
 
@@ -236,7 +241,11 @@ public final class FlightmodeView {
             }
 
             activity.getWindowManager().addView(container, params);
-            if (interstitial()) captureBack();
+            if (interstitial()) {
+                captureBack();
+                focusLender = new FocusLender(this);
+                activity.getApplication().registerActivityLifecycleCallbacks(focusLender);
+            }
             webView.loadUrl(ORIGIN + entryPath);
             MAIN.postDelayed(() -> {
                 if (!started) finish(false, false);
@@ -272,6 +281,35 @@ public final class FlightmodeView {
                 container.findOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
                 backCallback = callback;
             }
+        }
+
+        // Unity resumes only once the game's window has the focus again, and the interstitial's
+        // window holds it. When the activity comes back the ad lends the focus to the game and
+        // takes it back as soon as the game has had it.
+        void lendFocus() {
+            if (finished || focusReturn != null || !container.isAttachedToWindow()) return;
+            setFocusable(false);
+            final View decor = activity.getWindow().getDecorView();
+            focusReturn = hasFocus -> {
+                if (!hasFocus) return;
+                decor.getViewTreeObserver().removeOnWindowFocusChangeListener(focusReturn);
+                focusReturn = null;
+                MAIN.post(this::takeFocus);
+            };
+            decor.getViewTreeObserver().addOnWindowFocusChangeListener(focusReturn);
+        }
+
+        void takeFocus() {
+            if (finished || !container.isAttachedToWindow()) return;
+            setFocusable(true);
+            webView.requestFocus();
+        }
+
+        void setFocusable(boolean focusable) {
+            WindowManager.LayoutParams params = (WindowManager.LayoutParams) container.getLayoutParams();
+            if (focusable) params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+            else params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+            activity.getWindowManager().updateViewLayout(container, params);
         }
 
         void onBack() {
@@ -372,6 +410,8 @@ public final class FlightmodeView {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backCallback != null && attached) {
                 container.findOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
             }
+            if (focusLender != null) activity.getApplication().unregisterActivityLifecycleCallbacks(focusLender);
+            if (focusReturn != null) activity.getWindow().getDecorView().getViewTreeObserver().removeOnWindowFocusChangeListener(focusReturn);
             if (container != null) {
                 if (attached) activity.getWindowManager().removeViewImmediate(container);
                 webView.removeJavascriptInterface("__fmNative");
@@ -430,6 +470,43 @@ public final class FlightmodeView {
         static WebResourceResponse response(int status, String type, Map<String, String> headers, byte[] body) {
             String reason = status == 200 ? "OK" : status == 403 ? "Forbidden" : "Not Found";
             return new WebResourceResponse(type, null, status, reason, headers, new ByteArrayInputStream(body));
+        }
+    }
+
+    static final class FocusLender implements Application.ActivityLifecycleCallbacks {
+        final Ad ad;
+
+        FocusLender(Ad ad) {
+            this.ad = ad;
+        }
+
+        @Override
+        public void onActivityResumed(Activity activity) {
+            if (activity == ad.activity) ad.lendFocus();
+        }
+
+        @Override
+        public void onActivityCreated(Activity activity, Bundle state) {
+        }
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+        }
+
+        @Override
+        public void onActivityPaused(Activity activity) {
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(Activity activity, Bundle state) {
+        }
+
+        @Override
+        public void onActivityDestroyed(Activity activity) {
         }
     }
 
